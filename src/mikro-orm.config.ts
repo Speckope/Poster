@@ -1,8 +1,8 @@
 import { __prod__ } from './constants';
+require('dotenv').config({ path: __dirname + '/../.env' });
 import { Post } from './entities/Post';
 import { MikroORM } from '@mikro-orm/core';
 import path from 'path';
-require('dotenv-safe').config();
 
 export default {
   migrations: {
