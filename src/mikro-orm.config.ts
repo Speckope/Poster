@@ -25,7 +25,7 @@ export default {
 //   dbName: 'forum',
 //   type: 'postgresql',
 //   user: 'postgres',
-//   password: 'HalucynogennyWieloryb',
+//   password:process.env.DB_PASSWORD,
 //   debug: !__prod__,
 //   // when we cast into a const it makes type more specific and solves problems
 //   // when TS types doesn't line up
