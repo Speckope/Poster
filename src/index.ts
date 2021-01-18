@@ -1,17 +1,30 @@
 import { MikroORM } from '@mikro-orm/core';
 import { __prod__ } from './constants';
 import microConfig from './mikro-orm.config';
+import express from 'express';
+import { ApolloServer } from 'apollo-server-express';
+import { buildSchema } from 'type-graphql';
+import { HelloResolver } from './resolvers/hello';
 
 const main = async () => {
   const orm = await MikroORM.init(microConfig);
   await orm.getMigrator().up();
-  // Here we have access to all the post fields. This creates an instance of a Post
-  // const post = orm.em.create(Post, { title: 'Firsto Posto' });
-  // // This inserts  it into the db
-  // await orm.em.persistAndFlush(post);
 
-  // const posts = await orm.em.find(Post, {});
-  // console.log(posts);
+  const app = express();
+
+  const apolloServer = new ApolloServer({
+    schema: await buildSchema({
+      resolvers: [HelloResolver],
+      // By defaul validation uses class validtors package
+      validate: false,
+    }),
+  });
+
+  apolloServer.applyMiddleware({ app });
+
+  app.listen(4000, () => {
+    console.log('Listening on localhost:4000...');
+  });
 };
 
 main();
