@@ -4,7 +4,7 @@ import { Query, Resolver } from 'type-graphql';
 export class HelloResolver {
   // Here we add methods that can be mutations or queries.
 
-  // This meand we have a query called hello that returns a String ('hello world')
+  // This means we have a query called hello that returns a String ('hello world')
   @Query(() => String) // Here we need to declare what our query returns
   hello() {
     return 'hello world';

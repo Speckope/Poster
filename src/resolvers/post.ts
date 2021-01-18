@@ -24,7 +24,7 @@ export class PostResolver {
     return em.findOne(Post, { id });
   }
 
-  // Update a post!
+  // Create a post!
   // Queries are for getting data, mutations for updating/inserting/deleting
   @Mutation(() => Post) // { nullable: true } is how we say it can return null
   async createPost(
