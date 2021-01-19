@@ -7,6 +7,7 @@ import {
   InputType,
   Mutation,
   ObjectType,
+  Query,
   Resolver,
 } from 'type-graphql';
 import * as argon2 from 'argon2';
@@ -45,10 +46,21 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+  @Query(() => User, { nullable: true })
+  async me(@Ctx() { req, em }: MyContext) {
+    // Means we are not logged in
+    if (!req.session.userId) {
+      return null;
+    }
+
+    const user = await em.findOne(User, { id: req.session.userId });
+    return user;
+  }
+
   @Mutation(() => UserResponse)
   async register(
     @Arg('options', () => UsernamePasswordInput) options: UsernamePasswordInput,
-    @Ctx() { em }: MyContext
+    @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
     // We won't allow username shorter that 2 characters
     if (options.username.length < 2) {
@@ -97,6 +109,11 @@ export class UserResolver {
         };
       }
     }
+
+    // We login user after refister
+    // Stored user id session, sets a cookie on the user and keeps them logged in
+    req.session.userId = user.id;
+
     return { user };
   }
 
@@ -104,7 +121,7 @@ export class UserResolver {
   @Mutation(() => UserResponse)
   async login(
     @Arg('options') options: UsernamePasswordInput,
-    @Ctx() { em }: MyContext
+    @Ctx() { em, req }: MyContext
   ) {
     const user = await em.findOne(User, { username: options.username });
     if (!user) {
@@ -131,6 +148,8 @@ export class UserResolver {
         ],
       };
     }
+
+    req.session.userId = user.id;
 
     // And return user that's also allowed bc of UserResponse!
     return { user };
