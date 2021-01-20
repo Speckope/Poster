@@ -11,6 +11,8 @@ import {
   Resolver,
 } from 'type-graphql';
 import * as argon2 from 'argon2';
+// This import is for creating queries ourselves
+import { EntityManager } from '@mikro-orm/postgresql';
 
 // 2nd way of passing Args
 @InputType()
@@ -63,7 +65,7 @@ export class UserResolver {
     @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
     // We won't allow username shorter that 2 characters
-    if (options.username.length < 2) {
+    if (options.username.length < 3) {
       return {
         errors: [
           {
@@ -74,7 +76,7 @@ export class UserResolver {
       };
     }
 
-    if (options.password.length <= 3) {
+    if (options.password.length < 3) {
       return {
         errors: [
           {
@@ -87,13 +89,30 @@ export class UserResolver {
 
     const hashedPassword = await argon2.hash(options.password);
     // For now we only save username, bc we don't want to save plaintext password.
-    const user = em.create(User, {
-      username: options.username,
-      password: hashedPassword,
-    });
+    // const user = em.create(User, {
+    //   username: options.username,
+    //   password: hashedPassword,
+    // });
     // We try our insert
+    let user;
     try {
-      await em.persistAndFlush(user);
+      // OTHER METHOD OF CREATING A QUERY. BUILD QUERY YOURSELF. USING A QUERY BUILDER
+      // We have to cast it as EntityManager
+      const result = await (em as EntityManager)
+        .createQueryBuilder(User)
+        .getKnexQuery()
+        .insert({
+          username: options.username,
+          password: hashedPassword,
+          // We have to add underscored so it's correct column. orm switches it for us
+          // here it has to be explicit column type!
+          created_at: new Date(),
+          updated_at: new Date(),
+        })
+        .returning('*'); // This means we are returning all the fields
+
+      user = result[0];
+      // await em.persistAndFlush(user);
     } catch (err) {
       // look up code and detail in console.log(err)
       //   we need if bc it can fail for other reasons!

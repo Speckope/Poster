@@ -3,42 +3,30 @@ import { Formik, Form } from 'formik';
 import React from 'react';
 import { InputField } from '../components/InputField';
 import { Wrapper } from '../components/Wrapper';
-import { useRegisterMutation } from '../generated/graphql';
+import { useLoginMutation } from '../generated/graphql';
 import { toErrorMap } from '../utils/toErrorMap';
 import { useRouter } from 'next/router';
 
-interface registerProps {}
-
-const Register: React.FC<registerProps> = ({}) => {
+const Login: React.FC<{}> = ({}) => {
   const router = useRouter();
   // We use hook from urql
-  const [, register] = useRegisterMutation(); // We use register to make a call
+  const [, login] = useLoginMutation(); // We use register to make a call
 
   return (
     <Wrapper variant='small'>
       <Formik
         initialValues={{ username: '', password: '' }}
-        // values is form state when user submits it
         onSubmit={async (values, { setErrors }) => {
-          // setErrors is Formik thing!
-          // We pass variables in mutation to register.
-          // Here variables username and password line up in mutation and in values,
-          // so we can just pass values
-          const response = await register(values); // It will trigger the mutation
-          // if (response.data.register.errors) will throw an error if error is undefined
-          // if (response.data?.register.errors) will return undefined!
-          if (response.data?.register.errors) {
-            // We don't need ? marks below beacouse TS infers that error is defined
-            // due to if statement above! Such a smart kid this TS!
-            setErrors(toErrorMap(response.data.register.errors));
-          } else if (response.data?.register.user) {
+          // This is how we pass variables if we specified option object in graphQl mutations
+          const response = await login({ options: values }); // It will trigger the mutation
+          if (response.data?.login.errors) {
+            setErrors(toErrorMap(response.data.login.errors));
+          } else if (response.data?.login.user) {
             // worked! We want to navigate to a landing page now
             router.push('/');
           }
         }}
       >
-        {/* isSubmitting is a value that Formik gives us! We can pass it to 
-        isLoading in Chakra or our custom loading hanlder on button!  */}
         {({ isSubmitting }) => (
           <Form>
             <InputField
@@ -69,4 +57,4 @@ const Register: React.FC<registerProps> = ({}) => {
   );
 };
 
-export default Register;
+export default Login;

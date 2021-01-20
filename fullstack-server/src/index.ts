@@ -12,6 +12,7 @@ import redis from 'redis';
 import session from 'express-session';
 import connectRedis from 'connect-redis';
 import { MyContext } from './types';
+import cors from 'cors';
 
 const main = async () => {
   const orm = await MikroORM.init(microConfig);
@@ -23,6 +24,15 @@ const main = async () => {
   const RedisStore = connectRedis(session);
   // Creates on default on localhost
   const redisClient = redis.createClient();
+
+  // Cors handling
+  app.use(
+    '/',
+    cors({
+      origin: 'http://localhost:3000',
+      credentials: true,
+    })
+  );
 
   app.use(
     session({
@@ -66,7 +76,11 @@ const main = async () => {
   // This creates graphQL endpoint for us on express!
   // Now when we go to localhost:4000/grahql we have a graphql playground!!! :D
   // We can test our queries there.
-  apolloServer.applyMiddleware({ app });
+  apolloServer.applyMiddleware({
+    app,
+    // Applies only to this route
+    cors: false,
+  });
 
   app.listen(4000, () => {
     console.log('Listening on localhost:4000...');
