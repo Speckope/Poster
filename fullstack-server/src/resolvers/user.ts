@@ -13,6 +13,7 @@ import {
 import * as argon2 from 'argon2';
 // This import is for creating queries ourselves
 import { EntityManager } from '@mikro-orm/postgresql';
+import { COOKIE_NAME } from '../constants';
 
 // 2nd way of passing Args
 @InputType()
@@ -172,5 +173,27 @@ export class UserResolver {
 
     // And return user that's also allowed bc of UserResponse!
     return { user };
+  }
+
+  @Mutation(() => Boolean)
+  async logout(@Ctx() { req, res }: MyContext) {
+    // we create and return new promise. This resolver will wait for this promise to finish.
+    // And will wait for callback (err) => void to finish
+    return new Promise((resolve) =>
+      // This function destroys cookie on our redis server, so it no longer can return session data!
+      // It means we theoretically could get cookie value from res, decrypt it, find it in our redis db and delete!
+      req.session.destroy((err) => {
+        // This destroys the cookie!
+        res.clearCookie(COOKIE_NAME);
+        if (err) {
+          console.log(err);
+          // we return false from the promise if we got an error
+          resolve(false);
+          return;
+        }
+        // we return true if it was successful
+        resolve(true);
+      })
+    );
   }
 }

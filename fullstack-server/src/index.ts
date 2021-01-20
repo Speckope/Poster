@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { MikroORM } from '@mikro-orm/core';
-import { __prod__ } from './constants';
+import { COOKIE_NAME, __prod__ } from './constants';
 import microConfig from './mikro-orm.config';
 import express from 'express';
 import { ApolloServer } from 'apollo-server-express';
@@ -36,8 +36,8 @@ const main = async () => {
 
   app.use(
     session({
-      // Name of our cookie
-      name: 'qid',
+      // Name of our cookie(from constants, so if we change it in our constants it shall change everywhere!)
+      name: COOKIE_NAME,
       // This is tellinf express-session we're using reddit
       store: new RedisStore({
         client: redisClient,

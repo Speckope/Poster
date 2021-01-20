@@ -5,6 +5,7 @@ import { cacheExchange, Cache, QueryInput } from '@urql/exchange-graphcache';
 import theme from '../theme';
 import {
   LoginMutation,
+  LogoutMutation,
   MeDocument,
   MeQuery,
   RegisterMutation,
@@ -40,6 +41,15 @@ const client = createClient({
     cacheExchange({
       updates: {
         Mutation: {
+          // Now on logout cache will be updated and oour navbar will re-render as well!
+          logout: (_result, args, cache, info) => {
+            betterUpdateQuery<LogoutMutation, MeQuery>(
+              cache,
+              { query: MeDocument },
+              _result,
+              () => ({ me: null })
+            );
+          },
           // Name should match our Mutation name
           login: (_result, args, cache, info) => {
             // On result is writted data from our query
