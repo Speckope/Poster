@@ -2,11 +2,19 @@ import { Box, Button, Flex, Link } from '@chakra-ui/react';
 import React from 'react';
 import NextLink from 'next/link';
 import { useMeQuery, useLogoutMutation } from '../generated/graphql';
+import { isServer } from '../utils/isServer';
 
 interface NavbarProps {}
 
 export const Navbar: React.FC<NavbarProps> = ({}) => {
-  const [{ data, fetching }] = useMeQuery();
+  const [{ data, fetching }] = useMeQuery({
+    // Beacouse we enabled ssr on index page, it will make a request on next.js server when we go there and be server side rendered
+    // However our Next js server does not have a cookie, so it will return null.
+    // It makes an unnecessary request on server tro get a user and we don't need that.
+    // pause: true makes it nor run on the server
+    // It is not important for SEO to have user details, so we disabe it!
+    pause: isServer(),
+  });
   // We get fetching as logoutFetching (just a name change)
   const [{ fetching: logoutFetching }, logout] = useLogoutMutation();
 
