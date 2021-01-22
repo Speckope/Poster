@@ -1,0 +1,10 @@
+# So we do fragments inside fragments!
+# on UserResponse matcher our @ObjectType on server!
+fragment RegularUserResponse on UserResponse {
+  errors {
+    ...RegularError
+  }
+  user {
+    ...RegularUser
+  }
+}

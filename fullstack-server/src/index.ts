@@ -1,33 +1,47 @@
 import 'reflect-metadata';
-import { MikroORM } from '@mikro-orm/core';
+import dotenv from 'dotenv';
 import { COOKIE_NAME, __prod__ } from './constants';
-import microConfig from './mikro-orm.config';
 import express from 'express';
 import { ApolloServer } from 'apollo-server-express';
 import { buildSchema } from 'type-graphql';
 import { HelloResolver } from './resolvers/hello';
 import { PostResolver } from './resolvers/post';
 import { UserResolver } from './resolvers/user';
-import redis from 'redis';
+import Redis from 'ioredis';
 import session from 'express-session';
 import connectRedis from 'connect-redis';
 import { MyContext } from './types';
 import cors from 'cors';
+import { createConnection } from 'typeorm';
+import { Post } from './entities/Post';
+import { User } from './entities/User';
 
+dotenv.config();
 const main = async () => {
-  const orm = await MikroORM.init(microConfig);
-  await orm.getMigrator().up();
+  const conn = createConnection({
+    // Type of our db
+    type: 'postgres',
+    // Name of our db
+    database: 'forum2',
+    username: 'postgres',
+    password: process.env.DB_PASSWORD,
+    logging: true,
+    // synchronize will create tables automatically and we don't  have to run z migration.
+    synchronize: true,
+    entities: [Post, User],
+  });
+  // With connection we car run migrations
+  // conn.migrations
 
   const app = express();
 
   // We stick it here between app and ApolloServer.
   const RedisStore = connectRedis(session);
   // Creates on default on localhost
-  const redisClient = redis.createClient();
+  const redis = new Redis();
 
   // Cors handling
   app.use(
-    '/',
     cors({
       origin: 'http://localhost:3000',
       credentials: true,
@@ -40,7 +54,7 @@ const main = async () => {
       name: COOKIE_NAME,
       // This is tellinf express-session we're using reddit
       store: new RedisStore({
-        client: redisClient,
+        client: redis,
         // This will keep session for a long time so we won't have to touch the cookie to renew it!
         disableTouch: true,
       }),
@@ -70,7 +84,7 @@ const main = async () => {
       validate: false,
     }),
     // context is a special object that's accessible by all resolvers
-    context: ({ req, res }): MyContext => ({ em: orm.em, req, res }),
+    context: ({ req, res }): MyContext => ({ req, res, redis }),
   });
 
   // This creates graphQL endpoint for us on express!

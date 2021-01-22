@@ -1,27 +1,41 @@
-import { Entity, PrimaryKey, Property } from '@mikro-orm/core';
 import { Field, ObjectType } from 'type-graphql';
+import {
+  BaseEntity,
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 // @ObjectType tells GraphQL that is a type. We can stach decorators btw!
+// Field() is also for graphQL
 @ObjectType()
 @Entity()
-export class User {
+export class User extends BaseEntity {
   @Field()
-  @PrimaryKey()
+  @PrimaryGeneratedColumn()
   id!: number;
 
   @Field(() => String)
-  @Property({ type: 'date' })
-  createdAt = new Date();
+  @CreateDateColumn()
+  createdAt = Date;
 
   @Field(() => String)
-  @Property({ type: 'date', onUpdate: () => new Date() }) // onUpdate its a hook that fires on update!
-  updatedAt = new Date();
+  // Typeorm has special column dete for dates!
+  @UpdateDateColumn() // onUpdate its a hook that fires on update!
+  updatedAt = Date;
 
   @Field()
-  @Property({ type: 'text', unique: true }) //unique: true makes it unique...
+  @Column() //unique: true makes it unique...
   username!: string;
 
+  @Field()
+  // Typeorm has default string so we dont have to explicitly write it!
+  @Column({ unique: true })
+  email!: string;
+
   // We won't allow to select a password, it's only a db column!
-  @Property({ type: 'text' }) //unique: true makes it unique...
+  @Column() //unique: true makes it unique...
   password!: string;
 }

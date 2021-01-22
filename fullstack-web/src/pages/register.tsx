@@ -19,14 +19,14 @@ const Register: React.FC<registerProps> = ({}) => {
   return (
     <Wrapper variant='small'>
       <Formik
-        initialValues={{ username: '', password: '' }}
+        initialValues={{ email: '', username: '', password: '' }}
         // values is form state when user submits it
         onSubmit={async (values, { setErrors }) => {
           // setErrors is Formik thing!
           // We pass variables in mutation to register.
           // Here variables username and password line up in mutation and in values,
           // so we can just pass values
-          const response = await register(values); // It will trigger the mutation
+          const response = await register({ options: values }); // It will trigger the mutation
           // if (response.data.register.errors) will throw an error if error is undefined
           // if (response.data?.register.errors) will return undefined!
           if (response.data?.register.errors) {
@@ -49,9 +49,12 @@ const Register: React.FC<registerProps> = ({}) => {
               label='Username'
             />
             <Box mt={4}>
+              <InputField name='email' placeholder='email' label='Email' />
+            </Box>
+            <Box mt={4}>
               <InputField
                 name='password'
-                placeholder='pasword'
+                placeholder='password'
                 label='Password'
                 type='password'
               />

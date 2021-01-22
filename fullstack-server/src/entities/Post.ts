@@ -1,25 +1,35 @@
-import { Entity, PrimaryKey, Property } from '@mikro-orm/core';
 import { Field, ObjectType } from 'type-graphql';
+import {
+  BaseEntity,
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  Timestamp,
+  UpdateDateColumn,
+} from 'typeorm';
 
 // @ObjectType tells GraphQL that is a type. We can stach decorators btw!
 @ObjectType()
 @Entity()
-export class Post {
+export class Post extends BaseEntity {
+  // extends BaseEntity lest us run sql commands on Post like Post.find
   @Field()
-  @PrimaryKey()
+  @PrimaryGeneratedColumn()
   id!: number;
 
   // @Field() is exposing it to our graphQL schema. Ommiting it will not return it while querying.
   // () => String explicitly sets a type for GraphQL
   @Field(() => String)
-  @Property({ type: 'date' })
-  createdAt = new Date();
+  @CreateDateColumn()
+  // I changed to Timestamp bc it was bugging out whem passing GMT date with JAN FIRDAY ...
+  createdAt = Timestamp;
 
   @Field(() => String)
-  @Property({ type: 'date', onUpdate: () => new Date() }) // onUpdate its a hook that fires on update!
-  updatedAt = new Date();
+  @UpdateDateColumn()
+  updatedAt = Timestamp;
 
   @Field()
-  @Property({ type: 'text' })
+  @Column()
   title!: string;
 }

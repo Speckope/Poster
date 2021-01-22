@@ -11,8 +11,9 @@ export const Navbar: React.FC<NavbarProps> = ({}) => {
     // Beacouse we enabled ssr on index page, it will make a request on next.js server when we go there and be server side rendered
     // However our Next js server does not have a cookie, so it will return null.
     // It makes an unnecessary request on server tro get a user and we don't need that.
-    // pause: true makes it nor run on the server
+    // pause: true makes it not run on the server
     // It is not important for SEO to have user details, so we disabe it!
+    // Now when we are on the server it will run(window === 'undefined) and when we are on browser it will not.
     pause: isServer(),
   });
   // We get fetching as logoutFetching (just a name change)
