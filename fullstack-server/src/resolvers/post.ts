@@ -1,12 +1,72 @@
-import { Arg, Int, Mutation, Query, Resolver } from 'type-graphql';
+import { isAuth } from '../middleware/isAuth';
+import { MyContext } from 'src/types';
+import {
+  Arg,
+  Ctx,
+  Field,
+  InputType,
+  Int,
+  Mutation,
+  Query,
+  Resolver,
+  UseMiddleware,
+} from 'type-graphql';
 import { Post } from '../entities/Post';
+import { getConnection } from 'typeorm';
+
+@InputType()
+class PostInput {
+  @Field()
+  title: string;
+  @Field()
+  text: string;
+}
 
 @Resolver()
 export class PostResolver {
   // Find all posts
   @Query(() => [Post])
-  async posts(): Promise<Post[]> {
-    return Post.find();
+  async posts(
+    @Arg('limit', () => Int) limit: number,
+    // We could set offset, it's easy, but with offset we can run into performance problems
+    // especially if there are frequent updates
+    // Therefore we will use cursor based pagination
+    // @Arg('offset') offset: number
+    // With offset we say "give me gave after 10th post"
+    // With cursor we give it location, which means 'give me every post after specified location
+    // Type of cursor will depend of how we want to sort posts
+    @Arg('cursor', () => String, { nullable: true }) cursor: string | null // This is going to be a date, bc we will sort by the newest
+  ): Promise<Post[]> {
+    // We will let user pass whatever limit he wants, but under 50
+    const realLimit = Math.min(50, limit);
+
+    // const qb = getConnection()
+    //     .getRepository(Post)
+    //     // this is alias of how we wantn to call it
+    //     .createQueryBuilder('p')
+    //     .where('"createdAt" > :cursor', { cursor: parseInt(cursor); })
+    //     // We need double quotes around specific words in postresql,
+    //     // bc when it runs a sequel it lowercases it. Quotes will prevent it
+    //     .orderBy('"createdAt"', 'DESC') // order by createdAt and descending
+    //     .take(realLimit) // .take is recommended instead of .limit if we are doing pagination
+    //     .getMany()
+
+    // We construct our query conditionally!
+    const qb = getConnection()
+      .getRepository(Post)
+      // this is alias of how we wantn to call it
+      .createQueryBuilder('p')
+      // We need double quotes around specific words in postresql,
+      // bc when it runs a sequel it lowercases it. Quotes will prevent it
+      .orderBy('"createdAt"', 'DESC') // order by createdAt and descending
+      .take(realLimit); // .take is recommended instead of .limit if we are doing pagination
+
+    if (cursor) {
+      // cursor: new Date works for timestamp!
+      qb.where('"createdAt" < :cursor', { cursor: new Date(parseInt(cursor)) });
+    }
+
+    return qb.getMany();
   }
 
   // Find one post by id
@@ -23,8 +83,13 @@ export class PostResolver {
   // Create a post!
   // Queries are for getting data, mutations for updating/inserting/deleting
   @Mutation(() => Post) // { nullable: true } is how we say it can return null
-  async createPost(@Arg('title') title: string): Promise<Post> {
-    return Post.create({ title }).save();
+  @UseMiddleware(isAuth)
+  async createPost(
+    @Arg('input') input: PostInput,
+    @Ctx() { req }: MyContext
+  ): Promise<Post> {
+    // We spread input!
+    return Post.create({ ...input, creatorId: req.session.userId }).save();
   }
 
   // UPDATE POST. This is example with 2 SQL queries!!

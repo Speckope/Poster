@@ -1,4 +1,4 @@
-import { dedupExchange, fetchExchange } from 'urql';
+import { dedupExchange, fetchExchange, Exchange } from 'urql';
 import { cacheExchange } from '@urql/exchange-graphcache';
 import {
   LogoutMutation,
@@ -8,6 +8,23 @@ import {
   RegisterMutation,
 } from '../generated/graphql';
 import { betterUpdateQuery } from './betterUpdateQuery';
+import { pipe, tap } from 'wonka';
+// This is Next global router
+import Router from 'next/router';
+
+const errorExchange: Exchange = ({ forward }) => ($ops) => {
+  return pipe(
+    forward($ops),
+    // This will run every time there's an error
+    tap(({ error }) => {
+      if (error?.message.includes('not authenticated')) {
+        // replace will replace current route in history, not push another to history.
+        // This way back button won't get it
+        Router.replace('/login');
+      }
+    })
+  );
+};
 
 export const createUrqlClient = (ssrExchange: any) => ({
   // We point it to our server!
@@ -81,6 +98,7 @@ export const createUrqlClient = (ssrExchange: any) => ({
         },
       },
     }),
+    errorExchange,
     ssrExchange,
     fetchExchange,
   ],

@@ -53,7 +53,13 @@ export const Navbar: React.FC<NavbarProps> = ({}) => {
   }
 
   return (
-    <Flex bgGradient='linear(to-r, teal.500,green.500)' p={4}>
+    <Flex
+      position='sticky'
+      zIndex={10}
+      top={0}
+      bgGradient='linear(to-r, teal.500,green.500)'
+      p={4}
+    >
       <Box ml='auto'>{body}</Box>
     </Flex>
   );

@@ -15,10 +15,11 @@ import cors from 'cors';
 import { createConnection } from 'typeorm';
 import { Post } from './entities/Post';
 import { User } from './entities/User';
+import path from 'path';
 
 dotenv.config();
 const main = async () => {
-  const conn = createConnection({
+  const conn = await createConnection({
     // Type of our db
     type: 'postgres',
     // Name of our db
@@ -26,12 +27,15 @@ const main = async () => {
     username: 'postgres',
     password: process.env.DB_PASSWORD,
     logging: true,
+    migrations: [path.join(__dirname, './migrations/*')],
     // synchronize will create tables automatically and we don't  have to run z migration.
     synchronize: true,
     entities: [Post, User],
   });
   // With connection we car run migrations
   // conn.migrations
+  // await Post.delete({}); // deletes all posts
+  await conn.runMigrations();
 
   const app = express();
 
@@ -39,6 +43,9 @@ const main = async () => {
   const RedisStore = connectRedis(session);
   // Creates on default on localhost
   const redis = new Redis();
+  redis.on('error', (e) => {
+    console.log(e);
+  });
 
   // Cors handling
   app.use(

@@ -101,12 +101,10 @@ export class UserResolver {
       };
     }
 
-    // Hash a password
-    user.password = await argon2.hash(newPassword);
     // Save user
     await User.update(
       { id: userIdNum },
-      { password: await argon2.hash(newPassword) }
+      { password: await argon2.hash(newPassword) } // Hash a password
     );
 
     // We delete token from db, so it's not possible to change password again!

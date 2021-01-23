@@ -13,7 +13,8 @@ import { createUrqlClient } from '../../utils/createUqrlClient';
 import NextLink from 'next/link';
 
 // Notive it is NextPage!
-const ChangePassword: NextPage<{ token: string }> = ({ token }) => {
+// const ChangePassword: NextPage<{ token: string }> = () => {
+const ChangePassword: NextPage = () => {
   const router = useRouter();
 
   // Chakra error message
@@ -43,7 +44,11 @@ const ChangePassword: NextPage<{ token: string }> = ({ token }) => {
           //   // This is how we pass variables if we specified option object in graphQl mutations
           const response = await changePassword({
             newPassword: values.newPassword,
-            token,
+            // We get token from query params! And we check it if exists.
+            token:
+              // Next js KNOWS this query parameter is called token, bc this is how
+              // we named our file(this page)!!!!
+              typeof router.query.token === 'string' ? router.query.token : '',
           });
           if (response.data?.changePassword.errors) {
             // We need to display depending on different
@@ -96,11 +101,15 @@ const ChangePassword: NextPage<{ token: string }> = ({ token }) => {
 
 // This is how we get our query parameter!
 // There is also function for getting props from server or something like that if u need it
-ChangePassword.getInitialProps = ({ query }) => {
-  return {
-    // we cast it to string bd getInitialProps expects a 3 different types of props
-    token: query.token as string,
-  };
-};
+// ChangePassword.getInitialProps = ({ query }) => {
+//   return {
+//     // we cast it to string bd getInitialProps expects a 3 different types of props
+//     token: query.token as string,
+//   };
+// };
+
+// WE DONT NEED getInitialProps here, bc we can get token from the router
+// If our page is does not getInitialProps  Next will optimize it and make it static!
+// If we don't need getInitialProps, we don't want to do it!
 
 export default withUrqlClient(createUrqlClient)(ChangePassword);

@@ -4,9 +4,11 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { Post } from './Post';
 
 // @ObjectType tells GraphQL that is a type. We can stach decorators btw!
 // Field() is also for graphQL
@@ -16,15 +18,6 @@ export class User extends BaseEntity {
   @Field()
   @PrimaryGeneratedColumn()
   id!: number;
-
-  @Field(() => String)
-  @CreateDateColumn()
-  createdAt = Date;
-
-  @Field(() => String)
-  // Typeorm has special column dete for dates!
-  @UpdateDateColumn() // onUpdate its a hook that fires on update!
-  updatedAt = Date;
 
   @Field()
   @Column() //unique: true makes it unique...
@@ -38,4 +31,16 @@ export class User extends BaseEntity {
   // We won't allow to select a password, it's only a db column!
   @Column() //unique: true makes it unique...
   password!: string;
+
+  @OneToMany(() => Post, (post) => post.creator)
+  posts: Post[];
+
+  @Field(() => String)
+  @CreateDateColumn()
+  createdAt = Date;
+
+  @Field(() => String)
+  // Typeorm has special column dete for dates!
+  @UpdateDateColumn() // onUpdate its a hook that fires on update!
+  updatedAt = Date;
 }

@@ -14,6 +14,8 @@ const Login: React.FC<{}> = ({}) => {
   const router = useRouter();
   // We use hook from urql
   const [, login] = useLoginMutation(); // We use register to make a call
+  // If u don't know where auery is just consolelog router!
+  // console.log(router);
 
   return (
     <Wrapper variant='small'>
@@ -25,8 +27,14 @@ const Login: React.FC<{}> = ({}) => {
           if (response.data?.login.errors) {
             setErrors(toErrorMap(response.data.login.errors));
           } else if (response.data?.login.user) {
-            // worked! We want to navigate to a landing page now
-            router.push('/');
+            // We navigate to page we specified in page before we were redirected by is isAuth
+            if (typeof router.query.next === 'string') {
+              // If its not a string, it is undefined, so it it now there!
+              router.push(router.query.next);
+            } else {
+              // WE navigate to landing page if no query next has been specified
+              router.push('/');
+            }
           }
         }}
       >
