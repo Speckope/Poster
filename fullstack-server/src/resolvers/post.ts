@@ -1,18 +1,22 @@
-import { isAuth } from '../middleware/isAuth';
+// import { isAuth } from '../middleware/isAuth';
 import { MyContext } from 'src/types';
 import {
   Arg,
   Ctx,
   Field,
+  FieldResolver,
   InputType,
   Int,
   Mutation,
+  ObjectType,
   Query,
   Resolver,
+  Root,
   UseMiddleware,
 } from 'type-graphql';
 import { Post } from '../entities/Post';
 import { getConnection } from 'typeorm';
+import { isAuth } from '../middleware/isAuth';
 
 @InputType()
 class PostInput {
@@ -22,10 +26,69 @@ class PostInput {
   text: string;
 }
 
-@Resolver()
+@ObjectType()
+class PaginatedPosts {
+  // [Post] is a graphql type, Post[] is a TS type!!
+  @Field(() => [Post])
+  posts: Post[];
+  // This wil return whether there are more posts in the list
+  @Field()
+  hasMore: boolean;
+}
+
+@Resolver(Post)
 export class PostResolver {
+  // When we do this kind od FieldResolver, we have to ad to @Resolver() what we are resolving
+  // Here - Post @Resolver(Post)
+  // @FieldResolver is a graplq thing
+  // We are going to create this field and send it to the client.
+  @FieldResolver(() => String)
+  // This function is going to get called everytime we request send Post
+  // Root is a Post
+  // Now on our frontent insted of a text, we request textSnippet.
+  // This way we fetch only small part of the text, we will fetch whole text only when we click on the post!
+  textSnippet(@Root() root: Post) {
+    return root.text.slice(0, 50);
+  }
+
+  // UPDOOT MUTATION
+  @Mutation(() => Boolean)
+  // Only loggen in users can vote
+  @UseMiddleware(isAuth)
+  async vote(
+    @Arg('postId', () => Int) postId: number,
+    @Arg('value', () => Int) value: number,
+    @Ctx() { req }: MyContext
+  ) {
+    // It's an updoot if it's not -1
+    // We do it to prevent situations when user gives it like 13 points(in his request)
+    const isUpdoot = value !== -1;
+    // This means if they pass less than -1 point, we give a post an updoot anyway
+    const realValue = isUpdoot ? 1 : -1;
+    const { userId } = req.session;
+    // await Updoot.insert({
+    //   userId,
+    //   postId,
+    //   value,
+    // });
+
+    await getConnection().query(
+      `
+      START TRANSACTION;
+      insert into updoot ("userId", "postId", value)
+      values (${userId}, ${postId}, ${realValue});
+      update post 
+      set points = points + ${realValue}
+      where id = ${postId};
+      COMMIT;
+    `
+    );
+
+    return true;
+  }
+
   // Find all posts
-  @Query(() => [Post])
+  @Query(() => PaginatedPosts)
   async posts(
     @Arg('limit', () => Int) limit: number,
     // We could set offset, it's easy, but with offset we can run into performance problems
@@ -36,9 +99,14 @@ export class PostResolver {
     // With cursor we give it location, which means 'give me every post after specified location
     // Type of cursor will depend of how we want to sort posts
     @Arg('cursor', () => String, { nullable: true }) cursor: string | null // This is going to be a date, bc we will sort by the newest
-  ): Promise<Post[]> {
+  ): Promise<PaginatedPosts> {
+    // !!  Notice that this TS type is the same as what we return in Query!
     // We will let user pass whatever limit he wants, but under 50
+    // User asks for 20 losts, but actually we fetch 21 posts.
+    // Idea is we check for the number of posts we git back. If we get 21 posts it means there
+    // are more posts to be shown. If we get less, we know that there is not more to be shown
     const realLimit = Math.min(50, limit);
+    const realLimitPlusOne = realLimit + 1;
 
     // const qb = getConnection()
     //     .getRepository(Post)
@@ -51,22 +119,71 @@ export class PostResolver {
     //     .take(realLimit) // .take is recommended instead of .limit if we are doing pagination
     //     .getMany()
 
-    // We construct our query conditionally!
-    const qb = getConnection()
-      .getRepository(Post)
-      // this is alias of how we wantn to call it
-      .createQueryBuilder('p')
-      // We need double quotes around specific words in postresql,
-      // bc when it runs a sequel it lowercases it. Quotes will prevent it
-      .orderBy('"createdAt"', 'DESC') // order by createdAt and descending
-      .take(realLimit); // .take is recommended instead of .limit if we are doing pagination
+    const replacements: any[] = [realLimitPlusOne];
 
     if (cursor) {
-      // cursor: new Date works for timestamp!
-      qb.where('"createdAt" < :cursor', { cursor: new Date(parseInt(cursor)) });
+      replacements.push(new Date(parseInt(cursor)));
     }
 
-    return qb.getMany();
+    // This way we can write raw sql!
+    // We write here: I want to reference the post table and i want to select all fields in it
+    const posts = await getConnection().query(
+      `
+      select p.*,
+      json_build_object(
+        'id', u.id,
+        'username', u.username,
+        'email', u.email,
+        'createdAt', u."createdAt",
+        'updatedAt', u."updatedAt"
+    ) creator
+    from post p
+    inner join public.user u on u.id = p."creatorId"
+    ${cursor ? `where p."createdAt" < $2` : ''}
+    order by p."createdAt" DESC
+    limit $1
+    `,
+      // We pass replacements of $1 and $2.
+      replacements
+    );
+
+    // We construct our query conditionally!
+    // const qb = getConnection()
+    // .getRepository(Post)
+    //   // this is alias of how we wantn to call it
+    //   .createQueryBuilder('p')
+    //   .innerJoinAndSelect(
+    //     // Which field we want to join on
+    //     'p.creator',
+    //     // Alias, here u for user
+    //     'u',
+    //     // Condition on which fields will be joined
+    //     '"u.id = p.creatorId"'
+    //   )
+    //   // We need double quotes around specific words in postresql,
+    //   // bc when it runs a sequel it lowercases it. Quotes will prevent it
+    //   .orderBy('p."createdAt"', 'DESC') // order by createdAt and descending
+    //   .take(realLimitPlusOne); // .take is recommended instead of .limit if we are doing pagination
+
+    // if (cursor) {
+    //   // cursor: new Date works for timestamp!
+    //   qb.where('p."createdAt" < :cursor', {
+    //     cursor: new Date(parseInt(cursor)),
+    //   });
+    // }
+
+    // const posts = await qb.getMany();
+
+    // So we fetch one  more post, then check if this one more post is present by comparing length of
+    // fetched posts to realLimitPlusOne(how much we wanted to fetch).
+    // If number of posts we fetched is not equal, it means there is no more posts.
+    // And we give the user one less post, se if hasMore is true, he will be able to fetch more posts
+    // even if there is only one more post to be fetched!
+    // Nice.
+    return {
+      posts: posts.slice(0, realLimit),
+      hasMore: posts.length === realLimitPlusOne,
+    };
   }
 
   // Find one post by id

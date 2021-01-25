@@ -5,10 +5,12 @@ import {
   CreateDateColumn,
   Entity,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   Timestamp,
   UpdateDateColumn,
 } from 'typeorm';
+import { Updoot } from './Updoot';
 import { User } from './User';
 
 // @ObjectType tells GraphQL that is a type. We can stach decorators btw!
@@ -30,7 +32,7 @@ export class Post extends BaseEntity {
   @Column()
   text!: string;
 
-  // POINST OF THE POST
+  // POINTS OF THE POST
   @Field()
   @Column({ type: 'int', default: 0 })
   points!: number;
@@ -41,8 +43,12 @@ export class Post extends BaseEntity {
 
   // This overally sets up a Foreign key, which we soter above as creatorId!
   // () => User poinst it to a type we want it to be connected to(User)
+  @Field() // If we add Field(), Typorm will fetch the user for us
   @ManyToOne(() => User, (user) => user.posts) // user => user.posts points to a key on User
   creator: User; // user it the name of the foreign key
+
+  @OneToMany(() => Updoot, (updoot) => updoot.post)
+  updoots: Updoot[];
 
   // @Field() is exposing it to our graphQL schema. Ommiting it will not return it while querying.
   // () => String explicitly sets a type for GraphQL

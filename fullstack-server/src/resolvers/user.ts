@@ -4,10 +4,12 @@ import {
   Arg,
   Ctx,
   Field,
+  FieldResolver,
   Mutation,
   ObjectType,
   Query,
   Resolver,
+  Root,
 } from 'type-graphql';
 import * as argon2 from 'argon2';
 // This import is for creating queries ourselves
@@ -41,8 +43,20 @@ class UserResponse {
   user?: User;
 }
 
-@Resolver()
+@Resolver(User)
 export class UserResolver {
+  // This is for showing email only when user is logged in
+  @FieldResolver(() => String)
+  email(@Root() user: User, @Ctx() { req }: MyContext) {
+    // We check if data send back is of current user, comparing id from session to send back id from db!
+    if (req.session.userId === user.id) {
+      return user.email;
+    }
+
+    // Request for user other then logged in
+    return '';
+  }
+
   //
   //
   // CHANGE PASSWORD

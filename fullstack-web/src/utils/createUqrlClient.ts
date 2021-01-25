@@ -1,5 +1,10 @@
-import { dedupExchange, fetchExchange, Exchange } from 'urql';
-import { cacheExchange } from '@urql/exchange-graphcache';
+import {
+  dedupExchange,
+  fetchExchange,
+  Exchange,
+  stringifyVariables,
+} from 'urql';
+import { cacheExchange, Resolver } from '@urql/exchange-graphcache';
 import {
   LogoutMutation,
   MeQuery,
@@ -26,6 +31,42 @@ const errorExchange: Exchange = ({ forward }) => ($ops) => {
   );
 };
 
+const cursorPagination = (): Resolver => {
+  return (_parent, fieldArgs, cache, info) => {
+    const { parentKey: entityKey, fieldName } = info;
+    const allFields = cache.inspectFields(entityKey);
+    const fieldInfos = allFields.filter((info) => info.fieldName === fieldName);
+    const size = fieldInfos.length;
+    if (size === 0) {
+      return undefined;
+    }
+
+    const fieldKey = `${fieldName}(${stringifyVariables(fieldArgs)})`;
+    const isItInTheCache = cache.resolve(
+      cache.resolveFieldByKey(entityKey, fieldKey) as string,
+      'posts'
+    );
+    info.partial = !isItInTheCache;
+    let hasMore = true;
+    const results: string[] = [];
+    fieldInfos.forEach((fi) => {
+      const key = cache.resolveFieldByKey(entityKey, fi.fieldKey) as string;
+      const data = cache.resolve(key, 'posts') as string[];
+      const _hasMore = cache.resolve(key, 'hasMore');
+      if (!_hasMore) {
+        hasMore = _hasMore as boolean;
+      }
+      results.push(...data);
+    });
+
+    return {
+      __typename: 'PaginatedPosts',
+      hasMore,
+      posts: results,
+    };
+  };
+};
+
 export const createUrqlClient = (ssrExchange: any) => ({
   // We point it to our server!
   url: 'http://localhost:4000/graphql',
@@ -36,8 +77,36 @@ export const createUrqlClient = (ssrExchange: any) => ({
   exchanges: [
     dedupExchange,
     cacheExchange({
+      keys: {
+        PaginatedPosts: () => null,
+      },
+      // Here are client side resolvers. They will run whenever selected queries are run
+      // We can use it also for computed values for e.g. and compute them on client side.
+      resolvers: {
+        Query: {
+          // Name of the query should match what name we have in our queries.
+          // Here what we habe in posts.graphql
+          posts: cursorPagination(),
+        },
+      },
       updates: {
         Mutation: {
+          createPost: (_result, args, cache, info) => {
+            const allFields = cache.inspectFields('Query');
+            const fieldInfos = allFields.filter(
+              (info) => info.fieldName === 'posts'
+            );
+            // We loop for each field in posts and invalidate cache
+            fieldInfos.forEach((fi) => {
+              cache.invalidate('Query', 'posts', fi.arguments || {}); // || {} is bc fi.arguments is possibly null
+            });
+            // This will invalidate the Query Posts when we do createPost Mutation
+            // It will be refetched!
+            cache.invalidate('Query', 'posts', {
+              // Here we pass variables for the query when it will refetch it!
+              limit: 15,
+            });
+          },
           // Now on logout cache will be updated and oour navbar will re-render as well!
           logout: (_result, args, cache, info) => {
             betterUpdateQuery<LogoutMutation, MeQuery>(

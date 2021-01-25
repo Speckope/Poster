@@ -16,6 +16,7 @@ import { createConnection } from 'typeorm';
 import { Post } from './entities/Post';
 import { User } from './entities/User';
 import path from 'path';
+import { Updoot } from './entities/Updoot';
 
 dotenv.config();
 const main = async () => {
@@ -30,7 +31,7 @@ const main = async () => {
     migrations: [path.join(__dirname, './migrations/*')],
     // synchronize will create tables automatically and we don't  have to run z migration.
     synchronize: true,
-    entities: [Post, User],
+    entities: [Post, User, Updoot],
   });
   // With connection we car run migrations
   // conn.migrations

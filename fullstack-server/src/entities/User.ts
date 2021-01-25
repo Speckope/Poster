@@ -9,6 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Post } from './Post';
+import { Updoot } from './Updoot';
 
 // @ObjectType tells GraphQL that is a type. We can stach decorators btw!
 // Field() is also for graphQL
@@ -34,6 +35,9 @@ export class User extends BaseEntity {
 
   @OneToMany(() => Post, (post) => post.creator)
   posts: Post[];
+
+  @OneToMany(() => Updoot, (updoot) => updoot.user)
+  updoots: Updoot[];
 
   @Field(() => String)
   @CreateDateColumn()
