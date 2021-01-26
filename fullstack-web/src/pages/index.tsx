@@ -6,6 +6,7 @@ import {
   Button,
   Flex,
   Heading,
+  IconButton,
   Link,
   Stack,
   Text,
@@ -13,6 +14,8 @@ import {
 import NextLink from 'next/link';
 import { usePostsQuery } from '../generated/graphql';
 import React, { useState } from 'react';
+import { ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons';
+import { UpdootSection } from '../components/UpdootSection';
 
 const Index = () => {
   // So we wil be changing variables to get a new query with next pages
@@ -50,12 +53,15 @@ const Index = () => {
         <Stack spacing={8}>
           {/* We add ! bc we know it will be defined */}
           {data!.posts.posts.map((post) => (
-            <Box key={post.id} p={5} shadow='md' borderWidth='1px'>
-              <Heading fontSize='xl'>{post.title}</Heading>{' '}
-              <Text> Posted by: {post.creator.username} </Text>
-              {/* We fetch only a small size of the post. (it's set up on the backend ) */}
-              <Text mt={4}>{post.textSnippet}</Text>
-            </Box>
+            <Flex key={post.id} p={5} shadow='md' borderWidth='1px'>
+              <UpdootSection post={post} />
+              <Box>
+                <Heading fontSize='xl'>{post.title}</Heading>
+                <Text> Posted by: {post.creator.username} </Text>
+                {/* We fetch only a small size of the post. (it's set up on the backend ) */}
+                <Text mt={4}>{post.textSnippet}</Text>
+              </Box>
+            </Flex>
           ))}
         </Stack>
       )}
