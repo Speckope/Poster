@@ -1,4 +1,4 @@
-import { Field, ObjectType } from 'type-graphql';
+import { Field, Int, ObjectType } from 'type-graphql';
 import {
   BaseEntity,
   Column,
@@ -36,6 +36,11 @@ export class Post extends BaseEntity {
   @Field()
   @Column({ type: 'int', default: 0 })
   points!: number;
+
+  // This is only a graphql schema field, so we don't put @Column
+  @Field(() => Int, { nullable: true })
+  // This will be 1, -1 or null. If 1 we upvoted it, -1 we downvoted, if null we have not voted on it
+  voteStatus: number | null;
 
   @Field()
   @Column()

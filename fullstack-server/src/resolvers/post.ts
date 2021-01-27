@@ -155,7 +155,8 @@ export class PostResolver {
     // With offset we say "give me gave after 10th post"
     // With cursor we give it location, which means 'give me every post after specified location
     // Type of cursor will depend of how we want to sort posts
-    @Arg('cursor', () => String, { nullable: true }) cursor: string | null // This is going to be a date, bc we will sort by the newest
+    @Arg('cursor', () => String, { nullable: true }) cursor: string | null, // This is going to be a date, bc we will sort by the newest
+    @Ctx() { req }: MyContext
   ): Promise<PaginatedPosts> {
     // !!  Notice that this TS type is the same as what we return in Query!
     // We will let user pass whatever limit he wants, but under 50
@@ -178,8 +179,16 @@ export class PostResolver {
 
     const replacements: any[] = [realLimitPlusOne];
 
+    if (req.session.userId) {
+      replacements.push(req.session.userId);
+    }
+
+    // If 2 items in the replacements, it wil be 2
+    let cursorIdx = 2;
     if (cursor) {
       replacements.push(new Date(parseInt(cursor)));
+      // if there are 3 items in the list, cursorIdx will be 3
+      cursorIdx = replacements.length;
     }
 
     // This way we can write raw sql!
@@ -193,10 +202,16 @@ export class PostResolver {
         'email', u.email,
         'createdAt', u."createdAt",
         'updatedAt', u."updatedAt"
-    ) creator
+    ) creator,
+    ${
+      // We render a subfield (computed) when there there is logged in user
+      req.session.userId
+        ? '(select value from updoot where "userId" = $2 and "postId" = p.id) "voteStatus"'
+        : 'null as "voteStatus"'
+    }
     from post p
     inner join public.user u on u.id = p."creatorId"
-    ${cursor ? `where p."createdAt" < $2` : ''}
+    ${cursor ? `where p."createdAt" < $${cursorIdx}` : ''}
     order by p."createdAt" DESC
     limit $1
     `,
@@ -251,7 +266,8 @@ export class PostResolver {
     @Arg('id', () => Int) id: number //  () => Int says it's an integer. However, both strings and int can be ommited. GraphQL will know this from TS type
   ): // This is what we're going to return. Whole thing is f(): Promise<Post | null> {}. It may be hard to see at first!
   Promise<Post | undefined> {
-    return Post.findOne(id);
+    // It will fetch post and creator relation. With this { relations: ['creator'] } Typeorm will left join this on the creator!
+    return Post.findOne(id, { relations: ['creator'] });
   }
 
   // Create a post!
@@ -268,28 +284,59 @@ export class PostResolver {
 
   // UPDATE POST. This is example with 2 SQL queries!!
   @Mutation(() => Post, { nullable: true }) // { nullable: true } is how we say it can return null
+  @UseMiddleware(isAuth)
   async updatePost(
     // To have 2 more arguments just add like this
-    @Arg('id') id: number,
-    @Arg('title', () => String, { nullable: true }) title: string // When nullable we have to declare type in 2nd argument
+    @Arg('id', () => Int) id: number,
+    @Arg('title') title: string, // When nullable we have to declare type in 2nd argument
+    @Arg('text') text: string,
+    @Ctx() { req }: MyContext
   ): Promise<Post | null> {
-    const post = await Post.findOne(id); // Same as await Post.findOne({where: {id}});
-    // If post is not found return null!
-    if (!post) {
-      return null;
-    }
-    // If we were given title, we update it!
-    if (typeof title !== 'undefined') {
-      // Update the post with given id to the value title
-      await Post.update({ id }, { title });
-    }
-    return post;
+    const result = await getConnection()
+      .createQueryBuilder()
+      .update(Post)
+      .set({ title, text })
+      // So we put in first part fields that correspond to by what we set. :id and :creatorId are our variables
+      .where('id = :id and "creatorId" = :creatorId', {
+        id,
+        creatorId: req.session.userId,
+      })
+      .returning('*')
+      .execute();
+
+    return result.raw[0];
   }
 
   // DELETE POST
   @Mutation(() => Boolean) // We return boolean whether it worked or not
-  async deletePost(@Arg('id') id: number): Promise<Boolean> {
-    await Post.delete(id);
+  @UseMiddleware(isAuth)
+  async deletePost(
+    @Arg('id', () => Int) id: number,
+    @Ctx() { req }: MyContext
+  ): Promise<Boolean> {
+    // NOT CASCADE WAY
+    // const post = await Post.findOne(id);
+
+    // if (!post) {
+    //   return false;
+    // }
+
+    // if (post.creatorId !== req.session.userId) {
+    //   throw new Error('not authorized');
+    // }
+
+    // // We have to delete updoots of this post due to relation
+    // await Updoot.delete({ postId: id });
+
+    // // You can only delete posts that you own
+    // await Post.delete({ id, creatorId: req.session.userId });
+
+    // CASCADING WAY - WE have to add {onDelete: "CASCADE"} in our
+    // Updoot entity in ManyToOne Field
+    // The problem can be deleting more than we want with cascading!
+    // Not cascading method is very explicit
+    await Post.delete({ id, creatorId: req.session.userId });
+
     return true;
   }
 }

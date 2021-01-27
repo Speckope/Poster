@@ -1,21 +1,20 @@
-import { withUrqlClient } from 'next-urql';
-import { Layout } from '../components/Layout';
-import { createUrqlClient } from '../utils/createUqrlClient';
 import {
   Box,
   Button,
   Flex,
   Heading,
-  IconButton,
   Link,
   Stack,
   Text,
 } from '@chakra-ui/react';
+import { withUrqlClient } from 'next-urql';
 import NextLink from 'next/link';
-import { usePostsQuery } from '../generated/graphql';
 import React, { useState } from 'react';
-import { ChevronDownIcon, ChevronUpIcon } from '@chakra-ui/icons';
+import { EditDeletePostButtons } from '../components/EditDeletePostButtons';
+import { Layout } from '../components/Layout';
 import { UpdootSection } from '../components/UpdootSection';
+import { useMeQuery, usePostsQuery } from '../generated/graphql';
+import { createUrqlClient } from '../utils/createUqrlClient';
 
 const Index = () => {
   // So we wil be changing variables to get a new query with next pages
@@ -25,6 +24,9 @@ const Index = () => {
     limit: 15,
     cursor: null as null | string,
   });
+
+  // // Rename data as meData
+  // const [{ data: meData }] = useMeQuery();
 
   const [{ data, fetching }] = usePostsQuery({
     variables,
@@ -37,7 +39,7 @@ const Index = () => {
 
   return (
     <Layout>
-      <Flex justify='space-between' align='flex-end' mb={2}>
+      {/* <Flex justify='space-between' align='flex-end' mb={2}>
         <Box>
           <Heading>Forum</Heading>
         </Box>
@@ -46,23 +48,38 @@ const Index = () => {
             <Link>Create post</Link>
           </NextLink>
         </Box>
-      </Flex>
+      </Flex> */}
       {!data && fetching ? (
         <div>Loading...</div>
       ) : (
         <Stack spacing={8}>
           {/* We add ! bc we know it will be defined */}
-          {data!.posts.posts.map((post) => (
-            <Flex key={post.id} p={5} shadow='md' borderWidth='1px'>
-              <UpdootSection post={post} />
-              <Box>
-                <Heading fontSize='xl'>{post.title}</Heading>
-                <Text> Posted by: {post.creator.username} </Text>
-                {/* We fetch only a small size of the post. (it's set up on the backend ) */}
-                <Text mt={4}>{post.textSnippet}</Text>
-              </Box>
-            </Flex>
-          ))}
+          {/* !post ? null : this is bc cache.invalidate post will make it so deleted psot will be null, */}
+          {data!.posts.posts.map((post) =>
+            // Without this  !post ? null : there would be an error "Cannot read property id(or some else) of null
+            // It was putting null as post, which would cause the error above. If we return null before it tries
+            // To real property of null it's fine
+            !post ? null : (
+              <Flex key={post.id} p={5} shadow='md' borderWidth='1px'>
+                <UpdootSection post={post} />
+                <Box flex={1}>
+                  <NextLink href='/post/[id]' as={`/post/${post.id}`}>
+                    <Link>
+                      <Heading fontSize='xl'>{post.title}</Heading>
+                    </Link>
+                  </NextLink>
+                  <Text> Posted by: {post.creator.username} </Text>
+                  {/* We fetch only a small size of the post. (it's set up on the backend ) */}
+                  <Text mt={4}>{post.textSnippet}</Text>
+                </Box>
+
+                <EditDeletePostButtons
+                  creatorId={post.creator.id}
+                  id={post.id}
+                />
+              </Flex>
+            )
+          )}
         </Stack>
       )}
       {/* So now we render based on hasMore as well! */}

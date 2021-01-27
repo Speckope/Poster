@@ -34,6 +34,9 @@ export const UpdootSection: React.FC<UpdootSectionProps> = ({ post }) => {
     <Flex direction='column' justify='center' align='center' mr={4}>
       <IconButton
         onClick={async () => {
+          if (post.voteStatus === 1) {
+            return;
+          }
           // We set loading
           setLoadingState('updoot-loading');
           // We use it as an async bc we will unset loading
@@ -43,6 +46,9 @@ export const UpdootSection: React.FC<UpdootSectionProps> = ({ post }) => {
           });
           setLoadingState('not-loading');
         }}
+        border='1px'
+        borderColor='gray.200'
+        colorScheme={post.voteStatus === 1 ? 'teal' : undefined}
         isLoading={loadingState === 'updoot-loading'}
         aria-label='Upvote'
         icon={<ChevronUpIcon w={7} h={7} />}
@@ -50,6 +56,10 @@ export const UpdootSection: React.FC<UpdootSectionProps> = ({ post }) => {
       <Box> {post.points} </Box>
       <IconButton
         onClick={async () => {
+          // If user has already downdooted it, onClick won't work
+          if (post.voteStatus === -1) {
+            return;
+          }
           setLoadingState('downdoot-loading');
           await vote({
             postId: post.id,
@@ -57,6 +67,9 @@ export const UpdootSection: React.FC<UpdootSectionProps> = ({ post }) => {
           });
           setLoadingState('not-loading');
         }}
+        border='1px'
+        borderColor='gray.200'
+        colorScheme={post.voteStatus === -1 ? 'red' : undefined}
         isLoading={loadingState === 'downdoot-loading'}
         aria-label='Downvote'
         icon={<ChevronDownIcon w={7} h={7} />}

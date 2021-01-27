@@ -1,4 +1,4 @@
-import { Box, Button, Flex, Link } from '@chakra-ui/react';
+import { Box, Button, Flex, Heading, Link } from '@chakra-ui/react';
 import React from 'react';
 import NextLink from 'next/link';
 import { useMeQuery, useLogoutMutation } from '../generated/graphql';
@@ -13,8 +13,12 @@ export const Navbar: React.FC<NavbarProps> = ({}) => {
     // It makes an unnecessary request on server tro get a user and we don't need that.
     // pause: true makes it not run on the server
     // It is not important for SEO to have user details, so we disabe it!
-    // Now when we are on the server it will run(window === 'undefined) and when we are on browser it will not.
+    // Now when we are on the server it will run(window === 'undefined) and when we are on browser it will not.\
+    // ---
     pause: isServer(),
+    // ---
+    // We can remove pause: isServer() now, beacouse now we are forwarding the cookie in createUrqlClient,
+    // So it will know what user we are!
   });
   // We get fetching as logoutFetching (just a name change)
   const [{ fetching: logoutFetching }, logout] = useLogoutMutation();
@@ -37,7 +41,12 @@ export const Navbar: React.FC<NavbarProps> = ({}) => {
     // User logged in
   } else {
     body = (
-      <Flex>
+      <Flex align='center'>
+        <NextLink href='/create-post'>
+          <Button as={Link} mr={2}>
+            Create post
+          </Button>
+        </NextLink>
         <Box mr={2}>{data.me.username}</Box>
         <Button
           isLoading={logoutFetching}
@@ -59,8 +68,17 @@ export const Navbar: React.FC<NavbarProps> = ({}) => {
       top={0}
       bgGradient='linear(to-r, teal.500,green.500)'
       p={4}
+      align='center'
+      justify='center'
     >
-      <Box ml='auto'>{body}</Box>
+      <Flex flex={1} maxW={800} align='center'>
+        <NextLink href='/'>
+          <Link>
+            <Heading> Forum </Heading>
+          </Link>
+        </NextLink>
+        <Box ml='auto'>{body}</Box>
+      </Flex>
     </Flex>
   );
 };
