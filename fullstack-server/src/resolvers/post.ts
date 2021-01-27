@@ -18,6 +18,7 @@ import { Post } from '../entities/Post';
 import { getConnection } from 'typeorm';
 import { isAuth } from '../middleware/isAuth';
 import { Updoot } from '../entities/Updoot';
+import { User } from '../entities/User';
 
 @InputType()
 class PostInput {
@@ -48,8 +49,35 @@ export class PostResolver {
   // Root is a Post
   // Now on our frontent insted of a text, we request textSnippet.
   // This way we fetch only small part of the text, we will fetch whole text only when we click on the post!
-  textSnippet(@Root() root: Post) {
-    return root.text.slice(0, 50);
+  textSnippet(@Root() post: Post) {
+    return post.text.slice(0, 50);
+  }
+
+  // With this, no matter where from post will be comming from, it will fetch a User by creatorId with a post!
+  @FieldResolver(() => User)
+  creator(@Root() post: Post, @Ctx() { userLoader }: MyContext) {
+    // return User.findOne(post.creatorId);
+    // We solve n+1 problem by using data loader! Now all ids will be batched into a single function call
+    // Data loader also gets rid of duplicate keys, so it won't fetch the same user for another psot if it already fetched him!
+    return userLoader.load(post.creatorId);
+  }
+
+  @FieldResolver(() => Int, { nullable: true })
+  async voteStatus(
+    @Root() post: Post,
+    @Ctx() { updootLoader, req }: MyContext
+  ) {
+    // If user is not logged in, he cannot have vote status, so return null
+    if (!req.session.userId) {
+      return null;
+    }
+
+    const updoot = await updootLoader.load({
+      postId: post.id,
+      userId: req.session.userId,
+    });
+
+    return updoot ? updoot.value : null;
   }
 
   // UPDOOT MUTATION
@@ -179,39 +207,17 @@ export class PostResolver {
 
     const replacements: any[] = [realLimitPlusOne];
 
-    if (req.session.userId) {
-      replacements.push(req.session.userId);
-    }
-
-    // If 2 items in the replacements, it wil be 2
-    let cursorIdx = 2;
     if (cursor) {
       replacements.push(new Date(parseInt(cursor)));
-      // if there are 3 items in the list, cursorIdx will be 3
-      cursorIdx = replacements.length;
     }
 
     // This way we can write raw sql!
     // We write here: I want to reference the post table and i want to select all fields in it
     const posts = await getConnection().query(
       `
-      select p.*,
-      json_build_object(
-        'id', u.id,
-        'username', u.username,
-        'email', u.email,
-        'createdAt', u."createdAt",
-        'updatedAt', u."updatedAt"
-    ) creator,
-    ${
-      // We render a subfield (computed) when there there is logged in user
-      req.session.userId
-        ? '(select value from updoot where "userId" = $2 and "postId" = p.id) "voteStatus"'
-        : 'null as "voteStatus"'
-    }
+    select p.*
     from post p
-    inner join public.user u on u.id = p."creatorId"
-    ${cursor ? `where p."createdAt" < $${cursorIdx}` : ''}
+    ${cursor ? `where p."createdAt" < $2` : ''}
     order by p."createdAt" DESC
     limit $1
     `,
@@ -267,7 +273,8 @@ export class PostResolver {
   ): // This is what we're going to return. Whole thing is f(): Promise<Post | null> {}. It may be hard to see at first!
   Promise<Post | undefined> {
     // It will fetch post and creator relation. With this { relations: ['creator'] } Typeorm will left join this on the creator!
-    return Post.findOne(id, { relations: ['creator'] });
+    // return Post.findOne(id, { relations: ['creator'] }); // We remove it bc we fetch creator in our FieldResolver!
+    return Post.findOne(id);
   }
 
   // Create a post!

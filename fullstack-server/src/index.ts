@@ -17,6 +17,8 @@ import { Post } from './entities/Post';
 import { User } from './entities/User';
 import path from 'path';
 import { Updoot } from './entities/Updoot';
+import { createUserLoader } from './utils/createCreatorLoader';
+import { createUpdootLoader } from './utils/createUpdootLoader';
 
 dotenv.config();
 const main = async () => {
@@ -92,7 +94,15 @@ const main = async () => {
       validate: false,
     }),
     // context is a special object that's accessible by all resolvers
-    context: ({ req, res }): MyContext => ({ req, res, redis }),
+    context: ({ req, res }): MyContext => ({
+      req,
+      res,
+      redis,
+      // context will be run on every request, so new DataLoader instance will be created on every request!
+      // DataLoader batches and caches loading of users within a single request
+      userLoader: createUserLoader(),
+      updootLoader: createUpdootLoader(),
+    }),
   });
 
   // This creates graphQL endpoint for us on express!
