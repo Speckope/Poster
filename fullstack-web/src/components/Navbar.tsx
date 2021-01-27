@@ -3,10 +3,13 @@ import React from 'react';
 import NextLink from 'next/link';
 import { useMeQuery, useLogoutMutation } from '../generated/graphql';
 import { isServer } from '../utils/isServer';
+import { useRouter } from 'next/router';
 
 interface NavbarProps {}
 
 export const Navbar: React.FC<NavbarProps> = ({}) => {
+  const router = useRouter();
+
   const [{ data, fetching }] = useMeQuery({
     // Beacouse we enabled ssr on index page, it will make a request on next.js server when we go there and be server side rendered
     // However our Next js server does not have a cookie, so it will return null.
@@ -50,8 +53,10 @@ export const Navbar: React.FC<NavbarProps> = ({}) => {
         <Box mr={2}>{data.me.username}</Box>
         <Button
           isLoading={logoutFetching}
-          onClick={() => {
-            logout();
+          onClick={async () => {
+            await logout();
+            // This will invalidate the cache
+            router.reload();
           }}
           variant='link'
         >
