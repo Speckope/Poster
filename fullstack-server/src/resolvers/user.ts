@@ -165,6 +165,8 @@ export class UserResolver {
 
     await sendEmail(
       email,
+      // SWITCH LOCALHOST to process.env if you want to make it work in production.
+      // Also you have to change to real email provider!
       `<a href="http://localhost:3000/change-password/${token}">reset password</a>`
     ).catch((err) => {
       console.log(err);

@@ -183,8 +183,7 @@ export class PostResolver {
     // With offset we say "give me gave after 10th post"
     // With cursor we give it location, which means 'give me every post after specified location
     // Type of cursor will depend of how we want to sort posts
-    @Arg('cursor', () => String, { nullable: true }) cursor: string | null, // This is going to be a date, bc we will sort by the newest
-    @Ctx() { req }: MyContext
+    @Arg('cursor', () => String, { nullable: true }) cursor: string | null // This is going to be a date, bc we will sort by the newest
   ): Promise<PaginatedPosts> {
     // !!  Notice that this TS type is the same as what we return in Query!
     // We will let user pass whatever limit he wants, but under 50

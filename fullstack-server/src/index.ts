@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import dotenv from 'dotenv';
+import 'dotenv-safe/config';
 import { COOKIE_NAME, __prod__ } from './constants';
 import express from 'express';
 import { ApolloServer } from 'apollo-server-express';
@@ -20,19 +20,18 @@ import { Updoot } from './entities/Updoot';
 import { createUserLoader } from './utils/createCreatorLoader';
 import { createUpdootLoader } from './utils/createUpdootLoader';
 
-dotenv.config();
 const main = async () => {
   const conn = await createConnection({
     // Type of our db
     type: 'postgres',
-    // Name of our db
-    database: 'forum2',
-    username: 'postgres',
-    password: process.env.DB_PASSWORD,
+    port: 5432,
+    // DB url
+    url: process.env.DATABASE_URL,
     logging: true,
     migrations: [path.join(__dirname, './migrations/*')],
     // synchronize will create tables automatically and we don't  have to run z migration.
-    synchronize: true,
+    // We don't want it in production!
+    // synchronize: true,
     entities: [Post, User, Updoot],
   });
   // With connection we car run migrations
@@ -45,15 +44,16 @@ const main = async () => {
   // We stick it here between app and ApolloServer.
   const RedisStore = connectRedis(session);
   // Creates on default on localhost
-  const redis = new Redis();
-  redis.on('error', (e) => {
-    console.log(e);
-  });
+  const redis = new Redis(process.env.REDIS_URL);
+
+  // In production we will gave ngnix sitting in front of our app, so we tell express
+  // That there will be 1 proxy. This is for making sessions work
+  app.set('proxy', 1);
 
   // Cors handling
   app.use(
     cors({
-      origin: 'http://localhost:3000',
+      origin: process.env.CORS_ORIGIN,
       credentials: true,
     })
   );
@@ -78,10 +78,12 @@ const main = async () => {
         sameSite: 'lax', // Ochrona przed atakami csrf
         // With secure cookie will work only in https
         secure: __prod__, // so we will use it only in production
+        // We may have some problems with cookie while SSR and to fix that we can specify a custom domain
+        // domain: __prod__ ? '.customdomain' : undefined
       },
       // It will create a session by default even if there is not any data, we set it so it does not.
       saveUninitialized: false,
-      secret: 'NianiaNana',
+      secret: process.env.SESSION_SECRET,
       resave: false,
     })
     // Now express-session will create a cookie!
@@ -114,7 +116,7 @@ const main = async () => {
     cors: false,
   });
 
-  app.listen(4000, () => {
+  app.listen(parseInt(process.env.PORT), () => {
     console.log('Listening on localhost:4000...');
   });
 };
