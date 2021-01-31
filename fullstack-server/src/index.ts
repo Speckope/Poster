@@ -48,7 +48,7 @@ const main = async () => {
 
   // In production we will gave ngnix sitting in front of our app, so we tell express
   // That there will be 1 proxy. This is for making sessions work
-  app.set('proxy', 1);
+  app.set('trust proxy', 1);
 
   // Cors handling
   app.use(
