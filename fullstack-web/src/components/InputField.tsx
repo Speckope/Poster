@@ -4,6 +4,9 @@ import {
   Input,
   FormErrorMessage,
   Textarea,
+  ComponentWithAs,
+  TextareaProps,
+  InputProps,
 } from '@chakra-ui/react';
 import { useField } from 'formik';
 import React, { InputHTMLAttributes } from 'react';
@@ -26,9 +29,10 @@ export const InputField: React.FC<InputFieldProps> = ({
 }) => {
   let InputOrTextarea = Input;
   if (textarea) {
-    InputOrTextarea = Textarea;
+    (InputOrTextarea as
+      | ComponentWithAs<'textarea', TextareaProps>
+      | ComponentWithAs<'input', InputProps>) = Textarea;
   }
-
   // field has a lor on it and we want to pass it all
   const [field, { error }] = useField(props);
 

@@ -1,4 +1,4 @@
-import { Box, Button, Divider, Link } from '@chakra-ui/react';
+import { Box, Button, Link } from '@chakra-ui/react';
 import { Formik, Form } from 'formik';
 import { NextPage } from 'next';
 import { useRouter } from 'next/router';

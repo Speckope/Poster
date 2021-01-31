@@ -98,7 +98,7 @@ export const createUrqlClient = (ssrExchange: any, ctx: any) => {
   console.log(process.env.NEXT_PUBLIC_API_URL);
   return {
     // We point it to our server!
-    url: process.env.NEXT_PUBLIC_API_URL,
+    url: process.env.NEXT_PUBLIC_API_URL as string,
     fetchOptions: {
       credentials: 'include' as const,
       // If there is a cookie on Next.js server, we pass it in headers here!
@@ -126,14 +126,14 @@ export const createUrqlClient = (ssrExchange: any, ctx: any) => {
         },
         updates: {
           Mutation: {
-            deletePost: (_result, args, cache, info) => {
+            deletePost: (_result, args, cache, _info) => {
               cache.invalidate({
                 __typename: 'Post',
                 id: (args as DeletePostMutationVariables).id,
               });
             },
 
-            vote: (_result, args, cache, info) => {
+            vote: (_result, args, cache, _info) => {
               const { postId, value } = args as VoteMutationVariables;
               const data = cache.readFragment(
                 // Here we define what fragment we want to get(Post)
@@ -174,7 +174,7 @@ export const createUrqlClient = (ssrExchange: any, ctx: any) => {
               }
             },
 
-            createPost: (_result, args, cache, info) => {
+            createPost: (_result, _args, cache, _info) => {
               invalidateAllPosts(cache);
               // This will invalidate the Query Posts when we do createPost Mutation
               // It will be refetched!
@@ -184,7 +184,7 @@ export const createUrqlClient = (ssrExchange: any, ctx: any) => {
               });
             },
             // Now on logout cache will be updated and oour navbar will re-render as well!
-            logout: (_result, args, cache, info) => {
+            logout: (_result, _args, cache, _info) => {
               betterUpdateQuery<LogoutMutation, MeQuery>(
                 cache,
                 { query: MeDocument },
@@ -193,7 +193,7 @@ export const createUrqlClient = (ssrExchange: any, ctx: any) => {
               );
             },
             // Name should match our Mutation name
-            login: (_result, args, cache, info) => {
+            login: (_result, _args, cache, _info) => {
               // On result is writted data from our query
               betterUpdateQuery<LoginMutation, MeQuery>( // This Types are also generated in from our schema!
                 cache,
@@ -218,7 +218,7 @@ export const createUrqlClient = (ssrExchange: any, ctx: any) => {
               invalidateAllPosts(cache);
             },
 
-            register: (_result, args, cache, info) => {
+            register: (_result, _args, cache, _info) => {
               // On result is writted data from our query
               betterUpdateQuery<RegisterMutation, MeQuery>(
                 cache,

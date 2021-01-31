@@ -13,7 +13,7 @@ import React, { useState } from 'react';
 import { EditDeletePostButtons } from '../components/EditDeletePostButtons';
 import { Layout } from '../components/Layout';
 import { UpdootSection } from '../components/UpdootSection';
-import { useMeQuery, usePostsQuery } from '../generated/graphql';
+import { usePostsQuery } from '../generated/graphql';
 import { createUrqlClient } from '../utils/createUqrlClient';
 
 const Index = () => {

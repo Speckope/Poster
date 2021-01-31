@@ -1,11 +1,7 @@
 import { ChevronUpIcon, ChevronDownIcon } from '@chakra-ui/icons';
 import { Flex, IconButton, Box } from '@chakra-ui/react';
 import React, { useState } from 'react';
-import {
-  PostSnippetFragment,
-  PostsQuery,
-  useVoteMutation,
-} from '../generated/graphql';
+import { PostSnippetFragment, useVoteMutation } from '../generated/graphql';
 
 interface UpdootSectionProps {
   // Here we select type that we want, we select type from PostQuery that was created when generating query
