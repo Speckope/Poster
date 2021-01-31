@@ -79,7 +79,7 @@ const main = async () => {
         // With secure cookie will work only in https
         secure: __prod__, // so we will use it only in production
         // We may have some problems with cookie while SSR and to fix that we can specify a custom domain
-        // domain: __prod__ ? '.customdomain' : undefined
+        domain: __prod__ ? '.htrs.xyz' : undefined,
       },
       // It will create a session by default even if there is not any data, we set it so it does not.
       saveUninitialized: false,
