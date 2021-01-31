@@ -95,9 +95,10 @@ export const createUrqlClient = (ssrExchange: any, ctx: any) => {
     cookie = ctx?.req?.headers?.cookie;
   }
 
+  console.log(process.env.NEXT_PUBLIC_API_URL);
   return {
     // We point it to our server!
-    url: 'http://localhost:4000/graphql',
+    url: process.env.NEXT_PUBLIC_API_URL,
     fetchOptions: {
       credentials: 'include' as const,
       // If there is a cookie on Next.js server, we pass it in headers here!
