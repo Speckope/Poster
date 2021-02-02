@@ -9,6 +9,7 @@ import {
   useUpdatePostMutation,
 } from '../../../generated/graphql';
 import { useGetIntId } from '../../../utils/useGetIntId';
+import { withApollo } from '../../../utils/withApollo';
 
 // AFTER AN UPDATE, WE DON'T HAVE TO UPDATE THE CACHE
 // urql ill do it for us, bc in our mutation we update and get post object back
@@ -83,4 +84,4 @@ const EditPost = ({}) => {
     </Layout>
   );
 };
-export default EditPost;
+export default withApollo({ ssr: false })(EditPost);

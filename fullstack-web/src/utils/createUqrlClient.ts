@@ -95,7 +95,6 @@ export const createUrqlClient = (ssrExchange: any, ctx: any) => {
     cookie = ctx?.req?.headers?.cookie;
   }
 
-  console.log(process.env.NEXT_PUBLIC_API_URL);
   return {
     // We point it to our server!
     url: process.env.NEXT_PUBLIC_API_URL as string,
@@ -148,7 +147,6 @@ export const createUrqlClient = (ssrExchange: any, ctx: any) => {
                 // This is how we look up the post
                 { id: postId }
               );
-              console.log('data: ', data);
               // If we got data back, update points
               if (data) {
                 // If vote status is 1 and we try to update it with one, we don't to anything

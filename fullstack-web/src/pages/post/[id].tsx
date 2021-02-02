@@ -3,6 +3,7 @@ import React from 'react';
 import { EditDeletePostButtons } from '../../components/EditDeletePostButtons';
 import { Layout } from '../../components/Layout';
 import { useGetPostFromUrl } from '../../utils/useGetPostFromUrl';
+import { withApollo } from '../../utils/withApollo';
 
 const Post: React.FC = ({}) => {
   const { data, error, loading } = useGetPostFromUrl();
@@ -45,4 +46,4 @@ const Post: React.FC = ({}) => {
 };
 
 // We add ssr bc we want post pages to have good SEO
-export default Post;
+export default withApollo({ ssr: true })(Post);

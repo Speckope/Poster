@@ -16,7 +16,6 @@ export const createUpdootLoader = () =>
         // So we create a string wich userId and postId
         updootsIdsToUpdoot[`${updoot.userId}|${updoot.postId}`] = updoot;
       });
-      console.log('updoots: ', updoots);
 
       return keys.map(
         (key) => updootsIdsToUpdoot[`${key.userId}|${key.postId}`]

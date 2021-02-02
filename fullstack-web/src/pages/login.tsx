@@ -3,16 +3,17 @@ import { Formik, Form } from 'formik';
 import React from 'react';
 import { InputField } from '../components/InputField';
 import { Wrapper } from '../components/Wrapper';
-import { useLoginMutation } from '../generated/graphql';
+import { MeDocument, MeQuery, useLoginMutation } from '../generated/graphql';
 import { toErrorMap } from '../utils/toErrorMap';
 import { useRouter } from 'next/router';
 import NextLink from 'next/link';
+import { withApollo } from '../utils/withApollo';
 
 const Login: React.FC<{}> = ({}) => {
   const router = useRouter();
   // We use hook from urql
   const [login] = useLoginMutation(); // We use register to make a call
-  // If u don't know where auery is just consolelog router!
+  // If u don't know where auery is just console.log router!
   // console.log(router);
 
   return (
@@ -21,7 +22,21 @@ const Login: React.FC<{}> = ({}) => {
         initialValues={{ usernameOrEmail: '', password: '' }}
         onSubmit={async (values, { setErrors }) => {
           // This is how we pass variables if we specified option object in graphQl mutations
-          const response = await login({ variables: values }); // It will trigger the mutation
+          const response = await login({
+            variables: values,
+            update: (cache, { data }) => {
+              cache.writeQuery<MeQuery>({
+                // We stick in the cache for the meQuery
+                query: MeDocument,
+                // This is the shape of the data it expects
+                data: {
+                  __typename: 'Query',
+                  me: data?.login.user,
+                },
+              });
+              cache.evict({ fieldName: 'posts:{}' });
+            },
+          }); // It will trigger the mutation
           if (response.data?.login.errors) {
             setErrors(toErrorMap(response.data.login.errors));
           } else if (response.data?.login.user) {
@@ -71,4 +86,4 @@ const Login: React.FC<{}> = ({}) => {
   );
 };
 
-export default Login;
+export default withApollo({ ssr: false })(Login);

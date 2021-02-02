@@ -5,10 +5,15 @@ import { useRouter } from 'next/router';
 import React, { useEffect, useState } from 'react';
 import { InputField } from '../../components/InputField';
 import { Wrapper } from '../../components/Wrapper';
-import { useChangePasswordMutation } from '../../generated/graphql';
+import {
+  MeDocument,
+  MeQuery,
+  useChangePasswordMutation,
+} from '../../generated/graphql';
 import { toErrorMap } from '../../utils/toErrorMap';
 import { useToast } from '@chakra-ui/react';
 import NextLink from 'next/link';
+import { withApollo } from '../../utils/withApollo';
 
 // Notive it is NextPage!
 // const ChangePassword: NextPage<{ token: string }> = () => {
@@ -50,6 +55,18 @@ const ChangePassword: NextPage = () => {
                 typeof router.query.token === 'string'
                   ? router.query.token
                   : '',
+            },
+            update: (cache, { data }) => {
+              cache.writeQuery<MeQuery>({
+                // We stick in the cache for the meQuery
+                query: MeDocument,
+                // This is the shape of the data it expects
+                data: {
+                  __typename: 'Query',
+                  me: data?.changePassword.user,
+                },
+              });
+              cache.evict({ fieldName: 'posts:{}' });
             },
           });
           if (response.data?.changePassword.errors) {
@@ -114,4 +131,4 @@ const ChangePassword: NextPage = () => {
 // If our page is does not getInitialProps  Next will optimize it and make it static!
 // If we don't need getInitialProps, we don't want to do it!
 
-export default ChangePassword;
+export default withApollo({ ssr: false })(ChangePassword);

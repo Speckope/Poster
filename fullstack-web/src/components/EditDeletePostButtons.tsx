@@ -41,8 +41,17 @@ export const EditDeletePostButtons: React.FC<EditDeletePostButtonsProps> = ({
       <Box>
         <IconButton
           onClick={() => {
-            deletePost({ variables: { id } });
-            console.log('click');
+            // In Apollo we do update function to change cache on mutation!
+            deletePost({
+              variables: { id },
+              update: (cache) => {
+                // cache.evict invalidates cache, we can pass
+                cache.evict({
+                  // Post:44
+                  id: 'Post:' + id, // It will remove it from the cache
+                });
+              },
+            });
           }}
           colorScheme='red'
           aria-label='Delete Post'

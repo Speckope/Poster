@@ -12,7 +12,8 @@ import React from 'react';
 import { EditDeletePostButtons } from '../components/EditDeletePostButtons';
 import { Layout } from '../components/Layout';
 import { UpdootSection } from '../components/UpdootSection';
-import { PostsQuery, usePostsQuery } from '../generated/graphql';
+import { usePostsQuery } from '../generated/graphql';
+import { withApollo } from '../utils/withApollo';
 
 const Index = () => {
   // So we wil be changing variables to get a new query with next pages
@@ -103,39 +104,40 @@ const Index = () => {
                   cursor:
                     data.posts.posts[data.posts.posts.length - 1].createdAt,
                 },
+                // OLD WAY OF DOING PAGINATION AND UPDAING CACHE!! NEW IN APP
                 // updateQuery takes 2 parameters - previousResults and object with variables, that are above
                 // and fetchMoreresult, which is the result of fetching more!
                 // Our  job here is to merge together previousValues and fetchMoreResult (result of the previous query)
                 // Also we stick :PostQuery as a result of this function bc we know this is what is to be returned
                 // This way we will have more type safety and autocompetion
-                updateQuery: (
-                  previousValues,
-                  { fetchMoreResult }
-                ): PostsQuery => {
-                  // If no more results were returned, return previous!
-                  if (!fetchMoreResult) {
-                    // We cast it bc previousValues are unknown
-                    return previousValues as PostsQuery;
-                  }
+                // updateQuery: (
+                //   previousValues,
+                //   { fetchMoreResult }
+                // ): PostsQuery => {
+                //   // If no more results were returned, return previous!
+                //   if (!fetchMoreResult) {
+                //     // We cast it bc previousValues are unknown
+                //     return previousValues as PostsQuery;
+                //   }
 
-                  // Here we will return both results merged into a single Post Query!!
-                  return {
-                    // Typename of our query
-                    __typename: 'Query',
-                    posts: {
-                      __typename: 'PaginatedPosts',
-                      // cast it for autocompletion
-                      hasMore: (fetchMoreResult as PostsQuery).posts.hasMore,
-                      // Here we merge!
-                      posts: [
-                        // Those are previous posts!
-                        ...(previousValues as PostsQuery).posts.posts,
-                        // Here we stick new posts!
-                        ...(fetchMoreResult as PostsQuery).posts.posts,
-                      ],
-                    },
-                  };
-                },
+                //   // Here we will return both results merged into a single Post Query!!
+                //   return {
+                //     // Typename of our query
+                //     __typename: 'Query',
+                //     posts: {
+                //       __typename: 'PaginatedPosts',
+                //       // cast it for autocompletion
+                //       hasMore: (fetchMoreResult as PostsQuery).posts.hasMore,
+                //       // Here we merge!
+                //       posts: [
+                //         // Those are previous posts!
+                //         ...(previousValues as PostsQuery).posts.posts,
+                //         // Here we stick new posts!
+                //         ...(fetchMoreResult as PostsQuery).posts.posts,
+                //       ],
+                //     },
+                //   };
+                // },
               });
             }}
             isLoading={loading}
@@ -150,4 +152,4 @@ const Index = () => {
 };
 
 // This sets up provider on Index. { ssr: true } activates server side rendering!
-export default Index;
+export default withApollo({ ssr: true })(Index);

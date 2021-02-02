@@ -223,10 +223,8 @@ export class UserResolver {
         )
         .returning('*') // We specify what we want to return. It will be stored in result
         .execute();
-      console.log(result);
       user = result.raw[0];
     } catch (err) {
-      console.log('err: ', err);
       // look up code and detail in console.log(err)
       //   we need if bc it can fail for other reasons!
       if (err.code === '23505' || err.detail.includes('already exists')) {

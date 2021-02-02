@@ -8,6 +8,7 @@ import { withUrqlClient } from 'next-urql';
 import { createUrqlClient } from '../utils/createUqrlClient';
 import { Layout } from '../components/Layout';
 import { useIsAuth } from '../utils/useIsAuth';
+import { withApollo } from '../utils/withApollo';
 
 const createPost: React.FC<{}> = ({}) => {
   const router = useRouter();
@@ -19,7 +20,17 @@ const createPost: React.FC<{}> = ({}) => {
       <Formik
         initialValues={{ title: '', text: '' }}
         onSubmit={async (values) => {
-          const { errors } = await createPost({ variables: { input: values } });
+          const { errors } = await createPost({
+            variables: { input: values },
+            update: (cache) => {
+              cache.evict({
+                // We use fieldname when we want to do a query
+                // We evict posts on root query
+                // posts is a name of our query
+                fieldName: 'posts:{}',
+              });
+            },
+          });
           // If no error we just push home page.
           // We let error hanling to our global error handler in createUrqlClient
           if (!errors) {
@@ -55,4 +66,4 @@ const createPost: React.FC<{}> = ({}) => {
     </Layout>
   );
 };
-export default createPost;
+export default withApollo({ ssr: false })(createPost);

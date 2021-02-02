@@ -3,9 +3,10 @@ import { Formik, Form } from 'formik';
 import React from 'react';
 import { InputField } from '../components/InputField';
 import { Wrapper } from '../components/Wrapper';
-import { useRegisterMutation } from '../generated/graphql';
+import { MeDocument, MeQuery, useRegisterMutation } from '../generated/graphql';
 import { toErrorMap } from '../utils/toErrorMap';
 import { useRouter } from 'next/router';
+import { withApollo } from '../utils/withApollo';
 
 interface registerProps {}
 
@@ -24,7 +25,21 @@ const Register: React.FC<registerProps> = ({}) => {
           // We pass variables in mutation to register.
           // Here variables username and password line up in mutation and in values,
           // so we can just pass values
-          const response = await register({ variables: { options: values } }); // It will trigger the mutation
+          const response = await register({
+            variables: { options: values },
+            // We get the data that is result of the register
+            update: (cache, { data }) => {
+              cache.writeQuery<MeQuery>({
+                // We stick in the cache for the meQuery
+                query: MeDocument,
+                // This is the shape of the data it expects
+                data: {
+                  __typename: 'Query',
+                  me: data?.register.user,
+                },
+              });
+            },
+          }); // It will trigger the mutation
           // if (response.data.register.errors) will throw an error if error is undefined
           // if (response.data?.register.errors) will return undefined!
           if (response.data?.register.errors) {
@@ -72,4 +87,4 @@ const Register: React.FC<registerProps> = ({}) => {
   );
 };
 
-export default Register;
+export default withApollo({ ssr: false })(Register);
