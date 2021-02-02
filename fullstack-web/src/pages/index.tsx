@@ -7,33 +7,35 @@ import {
   Stack,
   Text,
 } from '@chakra-ui/react';
-import { withUrqlClient } from 'next-urql';
 import NextLink from 'next/link';
-import React, { useState } from 'react';
+import React from 'react';
 import { EditDeletePostButtons } from '../components/EditDeletePostButtons';
 import { Layout } from '../components/Layout';
 import { UpdootSection } from '../components/UpdootSection';
-import { usePostsQuery } from '../generated/graphql';
-import { createUrqlClient } from '../utils/createUqrlClient';
+import { PostsQuery, usePostsQuery } from '../generated/graphql';
 
 const Index = () => {
   // So we wil be changing variables to get a new query with next pages
   // Type 'string' is not assignable to type 'null'. We solver this Ts error with this "cursor: null as string | null"
   // with casting it to string or null
-  const [variables, setVariables] = useState({
-    limit: 15,
-    cursor: null as null | string,
-  });
+  // const [variables, setVariables] = useState({}); urql
 
   // // Rename data as meData
   // const [{ data: meData }] = useMeQuery();
 
-  const [{ data, error, fetching }] = usePostsQuery({
-    variables,
+  // fetchMore is a special function used for pagination
+  // variables are the curent variables!
+  const { data, error, loading, fetchMore, variables } = usePostsQuery({
+    variables: {
+      limit: 15,
+      cursor: null,
+    },
+    // This way when we press fetchMore posts loading will turn true!
+    notifyOnNetworkStatusChange: true,
   });
 
   // If statement just in case something went wrong
-  if (!fetching && !data) {
+  if (!loading && !data) {
     return (
       <div>
         <div>There are no posts.</div>;<div>{error?.message}</div>
@@ -53,7 +55,7 @@ const Index = () => {
           </NextLink>
         </Box>
       </Flex> */}
-      {!data && fetching ? (
+      {!data && loading ? (
         <div>Loading...</div>
       ) : (
         <Stack spacing={8}>
@@ -92,16 +94,51 @@ const Index = () => {
         <Flex justify='center'>
           <Button
             onClick={() => {
-              // Here we pass variables specifying next pages
-              setVariables({
-                // limit stays the same
-                limit: variables.limit,
-                // We select all element after the last element in the list
-                // and we get last element createdAt field bc it's the field we depend cursor on
-                cursor: data.posts.posts[data.posts.posts.length - 1].createdAt,
+              fetchMore({
+                variables: {
+                  // limit stays the same, we get current variables from apollo!
+                  limit: variables?.limit,
+                  // We select all element after the last element in the list
+                  // and we get last element createdAt field bc it's the field we depend cursor on
+                  cursor:
+                    data.posts.posts[data.posts.posts.length - 1].createdAt,
+                },
+                // updateQuery takes 2 parameters - previousResults and object with variables, that are above
+                // and fetchMoreresult, which is the result of fetching more!
+                // Our  job here is to merge together previousValues and fetchMoreResult (result of the previous query)
+                // Also we stick :PostQuery as a result of this function bc we know this is what is to be returned
+                // This way we will have more type safety and autocompetion
+                updateQuery: (
+                  previousValues,
+                  { fetchMoreResult }
+                ): PostsQuery => {
+                  // If no more results were returned, return previous!
+                  if (!fetchMoreResult) {
+                    // We cast it bc previousValues are unknown
+                    return previousValues as PostsQuery;
+                  }
+
+                  // Here we will return both results merged into a single Post Query!!
+                  return {
+                    // Typename of our query
+                    __typename: 'Query',
+                    posts: {
+                      __typename: 'PaginatedPosts',
+                      // cast it for autocompletion
+                      hasMore: (fetchMoreResult as PostsQuery).posts.hasMore,
+                      // Here we merge!
+                      posts: [
+                        // Those are previous posts!
+                        ...(previousValues as PostsQuery).posts.posts,
+                        // Here we stick new posts!
+                        ...(fetchMoreResult as PostsQuery).posts.posts,
+                      ],
+                    },
+                  };
+                },
               });
             }}
-            isLoading={fetching}
+            isLoading={loading}
             mt={2}
           >
             Load more
@@ -113,4 +150,4 @@ const Index = () => {
 };
 
 // This sets up provider on Index. { ssr: true } activates server side rendering!
-export default withUrqlClient(createUrqlClient, { ssr: true })(Index);
+export default Index;

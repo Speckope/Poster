@@ -6,14 +6,12 @@ import { Wrapper } from '../components/Wrapper';
 import { useLoginMutation } from '../generated/graphql';
 import { toErrorMap } from '../utils/toErrorMap';
 import { useRouter } from 'next/router';
-import { withUrqlClient } from 'next-urql';
-import { createUrqlClient } from '../utils/createUqrlClient';
 import NextLink from 'next/link';
 
 const Login: React.FC<{}> = ({}) => {
   const router = useRouter();
   // We use hook from urql
-  const [, login] = useLoginMutation(); // We use register to make a call
+  const [login] = useLoginMutation(); // We use register to make a call
   // If u don't know where auery is just consolelog router!
   // console.log(router);
 
@@ -23,7 +21,7 @@ const Login: React.FC<{}> = ({}) => {
         initialValues={{ usernameOrEmail: '', password: '' }}
         onSubmit={async (values, { setErrors }) => {
           // This is how we pass variables if we specified option object in graphQl mutations
-          const response = await login(values); // It will trigger the mutation
+          const response = await login({ variables: values }); // It will trigger the mutation
           if (response.data?.login.errors) {
             setErrors(toErrorMap(response.data.login.errors));
           } else if (response.data?.login.user) {
@@ -73,4 +71,4 @@ const Login: React.FC<{}> = ({}) => {
   );
 };
 
-export default withUrqlClient(createUrqlClient)(Login);
+export default Login;

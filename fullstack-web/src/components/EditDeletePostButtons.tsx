@@ -14,9 +14,9 @@ export const EditDeletePostButtons: React.FC<EditDeletePostButtonsProps> = ({
   creatorId,
 }) => {
   // WE don't have to worry about having this query in many components bc it will be cached by urql and not run again!
-  const [{ data: meData }] = useMeQuery();
+  const { data: meData } = useMeQuery();
 
-  const [, deletePost] = useDeletePostMutation();
+  const [deletePost] = useDeletePostMutation();
 
   /* // Show edit and delete buttons only if logged in user is the owner of the post */
   if (meData?.me?.id !== creatorId) {
@@ -41,7 +41,7 @@ export const EditDeletePostButtons: React.FC<EditDeletePostButtonsProps> = ({
       <Box>
         <IconButton
           onClick={() => {
-            deletePost({ id });
+            deletePost({ variables: { id } });
             console.log('click');
           }}
           colorScheme='red'

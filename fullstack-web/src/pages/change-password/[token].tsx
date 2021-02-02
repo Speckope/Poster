@@ -8,8 +8,6 @@ import { Wrapper } from '../../components/Wrapper';
 import { useChangePasswordMutation } from '../../generated/graphql';
 import { toErrorMap } from '../../utils/toErrorMap';
 import { useToast } from '@chakra-ui/react';
-import { withUrqlClient } from 'next-urql';
-import { createUrqlClient } from '../../utils/createUqrlClient';
 import NextLink from 'next/link';
 
 // Notive it is NextPage!
@@ -20,7 +18,7 @@ const ChangePassword: NextPage = () => {
   // Chakra error message
   const toast = useToast();
 
-  const [, changePassword] = useChangePasswordMutation();
+  const [changePassword] = useChangePasswordMutation();
   // We create state for token error
   const [tokenError, setTokenError] = useState('');
 
@@ -43,12 +41,16 @@ const ChangePassword: NextPage = () => {
         onSubmit={async (values, { setErrors }) => {
           //   // This is how we pass variables if we specified option object in graphQl mutations
           const response = await changePassword({
-            newPassword: values.newPassword,
-            // We get token from query params! And we check it if exists.
-            token:
-              // Next js KNOWS this query parameter is called token, bc this is how
-              // we named our file(this page)!!!!
-              typeof router.query.token === 'string' ? router.query.token : '',
+            variables: {
+              newPassword: values.newPassword,
+              // We get token from query params! And we check it if exists.
+              token:
+                // Next js KNOWS this query parameter is called token, bc this is how
+                // we named our file(this page)!!!!
+                typeof router.query.token === 'string'
+                  ? router.query.token
+                  : '',
+            },
           });
           if (response.data?.changePassword.errors) {
             // We need to display depending on different
@@ -112,4 +114,4 @@ const ChangePassword: NextPage = () => {
 // If our page is does not getInitialProps  Next will optimize it and make it static!
 // If we don't need getInitialProps, we don't want to do it!
 
-export default withUrqlClient(createUrqlClient)(ChangePassword);
+export default ChangePassword;

@@ -37,7 +37,7 @@ const main = async () => {
   // With connection we car run migrations
   // conn.migrations
   // await Post.delete({}); // deletes all posts
-  await conn.runMigrations();
+  // await conn.runMigrations();
 
   const app = express();
 

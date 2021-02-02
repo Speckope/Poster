@@ -1,25 +1,31 @@
 import { Box, Button } from '@chakra-ui/react';
 import { Formik, Form } from 'formik';
-import { withUrqlClient } from 'next-urql';
 import { useRouter } from 'next/router';
 import React from 'react';
 import { InputField } from '../../../components/InputField';
 import { Layout } from '../../../components/Layout';
-import { useUpdatePostMutation } from '../../../generated/graphql';
-import { createUrqlClient } from '../../../utils/createUqrlClient';
+import {
+  usePostQuery,
+  useUpdatePostMutation,
+} from '../../../generated/graphql';
 import { useGetIntId } from '../../../utils/useGetIntId';
-import { useGetPostFromUrl } from '../../../utils/useGetPostFromUrl';
 
 // AFTER AN UPDATE, WE DON'T HAVE TO UPDATE THE CACHE
 // urql ill do it for us, bc in our mutation we update and get post object back
-const EditPost: React.FC = ({}) => {
+const EditPost = ({}) => {
   const router = useRouter();
   const intId = useGetIntId();
 
-  const [{ data, fetching }] = useGetPostFromUrl();
-  const [, updatePost] = useUpdatePostMutation();
+  const { data, loading } = usePostQuery({
+    skip: intId === -1,
+    variables: {
+      id: intId,
+    },
+  });
 
-  if (fetching) {
+  const [updatePost] = useUpdatePostMutation();
+
+  if (loading) {
     return (
       <Layout>
         <div>Loading...</div>
@@ -44,7 +50,7 @@ const EditPost: React.FC = ({}) => {
       <Formik
         initialValues={{ title: data.post.title, text: data.post.text }}
         onSubmit={async (values) => {
-          await updatePost({ id: intId, ...values });
+          await updatePost({ variables: { id: intId, ...values } });
           //   router.push('/');
           router.back(); // This will take us to previous url we were before we entered edit post
           // We could also programm it to pass next page in query parameters to take us after submitting
@@ -77,4 +83,4 @@ const EditPost: React.FC = ({}) => {
     </Layout>
   );
 };
-export default withUrqlClient(createUrqlClient)(EditPost);
+export default EditPost;
